@@ -19,15 +19,20 @@ contract BoxDB is owned {
     uint updatedAt;
   }
 
+  /* underlying data */
   mapping (bytes32 => BoxRecord) boxRecords;
+
+  /* public (approved) index */
   IndexedEnumerableSetLib.IndexedEnumerableSet boxes;
 
 
   /*
    * Events
    */
-  event BoxAdd(bytes32 indexed id);
+  event BoxCreate(bytes32 indexed id);
   event BoxUpdate(bytes32 indexed id);
+
+  event BoxAdd(bytes32 indexed id);
   event BoxRemove(bytes32 indexed id);
 
   /*
@@ -41,11 +46,23 @@ contract BoxDB is owned {
     _;
   }
 
+  modifier onlyIfBoxIndexed(bytes32 id) {
+    if (!boxIndexed(id)) {
+      throw;
+    }
+
+    _;
+  }
+
   /*
    * Read API
    */
   function boxExists(bytes32 id) constant returns (bool) {
-    return boxRecords[id].maintainer != 0x0;
+    return boxRecords[id].addedAt > 0;
+  }
+
+  function boxIndexed(bytes32 id) constant returns (bool) {
+    return boxes.contains(id);
   }
 
   function numBoxes() constant returns (uint) {
@@ -86,7 +103,7 @@ contract BoxDB is owned {
   /*
    * Write API
    */
-  function add(
+  function create(
     string summary,
     string description,
     string sourceURL,
@@ -107,9 +124,7 @@ contract BoxDB is owned {
     record.addedAt = now;
     record.updatedAt = now;
 
-    boxes.add(id);
-
-    BoxAdd(id);
+    BoxCreate(id);
   }
 
   function update(
@@ -131,8 +146,15 @@ contract BoxDB is owned {
     BoxUpdate(id);
   }
 
+  function add(bytes32 id) onlyowner onlyIfBoxExists(id) {
+    if (!boxes.contains(id)) {
+      boxes.add(id);
+
+      BoxAdd(id);
+    }
+  }
+
   function remove(bytes32 id) onlyIfBoxExists(id) onlyowner {
-    delete boxRecords[id];
     boxes.remove(id);
 
     BoxRemove(id);

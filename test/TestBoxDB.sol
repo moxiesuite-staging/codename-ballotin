@@ -9,61 +9,92 @@ contract MaintainerProxy {
 contract TestBoxDB {
   BoxDB db;
 
+  string exampleSummary = "truffle-box-react";
+  string exampleDescription = "Truffle Box preconfigured with React integration";
+  string exampleSourceURL = "git+ssh://git@github.com:truffle-box/truffle-box-react.git";
+
+  struct TestCase {
+    string summary;
+    string description;
+    string sourceURL;
+    MaintainerProxy maintainerProxy;
+
+    bytes32 boxID;
+    uint numBoxesBefore;
+  }
+
+  function setupTestCase(MaintainerProxy maintainer)
+    internal
+    returns (TestCase memory test)
+  {
+    test.summary = exampleSummary;
+    test.description = exampleDescription;
+    test.sourceURL = exampleSourceURL;
+    test.maintainerProxy = maintainer;
+
+    test.numBoxesBefore = db.numBoxes();
+  }
+
+  function createBox(TestCase test) internal {
+    test.boxID = db.create(
+      test.summary,
+      test.description,
+      test.sourceURL,
+      address(test.maintainerProxy)
+    );
+  }
+
   function beforeEach() {
     db = new BoxDB();
   }
 
-  function testAddingBox() {
-    var summary = "test box";
-    var description = "longer description";
-    var sourceURL = "git+ssh://git@github.com:truffle-box/truffle-box-react.git";
-    MaintainerProxy proxy = new MaintainerProxy();
-
-    var numBoxesPrior = db.numBoxes();
-
-    var boxID = db.add(summary, description, sourceURL, address(proxy));
+  function testCreatingBox() {
+    TestCase memory test = setupTestCase(new MaintainerProxy());
+    createBox(test);
 
     /* existence */
-    Assert.isTrue(db.boxExists(boxID), "Box should exist after being added");
-    Assert.equal(db.numBoxes(), numBoxesPrior + 1, "Box count should be increased by one");
-    Assert.equal(db.boxAt(numBoxesPrior), boxID, "Box ID should be enumerated");
+    Assert.isTrue(db.boxExists(test.boxID), "Box should exist after being added");
 
     /* correctness (string returns don't work, skip for test) */
-    var (_0, _1, _2, maintainer, addedAt, updatedAt) = db.boxInfo(boxID);
-    Assert.equal(maintainer, address(proxy), "Maintainer should match");
+    var (_0, _1, _2, maintainer, addedAt, updatedAt) = db.boxInfo(test.boxID);
+    Assert.equal(maintainer, address(test.maintainerProxy), "Maintainer should match");
     Assert.isAbove(addedAt, 0, "Add time should be set");
     Assert.isAbove(updatedAt, 0, "Update time should be set");
   }
 
+  function testAddingBox() {
+    TestCase memory test = setupTestCase(new MaintainerProxy());
+    createBox(test);
+
+    db.add(test.boxID);
+    Assert.equal(db.numBoxes(), test.numBoxesBefore + 1, "Box count should be increased by one");
+    Assert.equal(db.boxAt(test.numBoxesBefore), test.boxID, "Box ID should be enumerated");
+  }
+
   function testUpdatingBox() {
-    /* add first */
-    var summary = "test box";
-    var description = "longer description";
-    var sourceURL = "git+ssh://git@github.com:truffle-box/truffle-box-react.git";
-    var maintainer = address(new MaintainerProxy());
-    var boxID = db.add(summary, description, sourceURL, maintainer);
+    TestCase memory test = setupTestCase(new MaintainerProxy());
+    createBox(test);
+    db.add(test.boxID);
 
     /* update */
     var newMaintainer = address(new MaintainerProxy());
-    db.update(boxID, "new summary", "new desc", sourceURL, newMaintainer);
+    db.update(test.boxID, "new summary", "new desc", test.sourceURL, newMaintainer);
 
-    var (_0, _1, _2, updatedMaintainer, _3, _4) = db.boxInfo(boxID);
+    var (_0, _1, _2, updatedMaintainer, _3, _4) = db.boxInfo(test.boxID);
     Assert.equal(updatedMaintainer, newMaintainer, "Maintainer should change");
   }
 
   function testRemovingBox() {
-    /* add first */
-    var summary = "test box";
-    var description = "longer description";
-    var sourceURL = "git+ssh://git@github.com:truffle-box/truffle-box-react.git";
-    var maintainer = address(new MaintainerProxy());
-    var boxID = db.add(summary, description, sourceURL, maintainer);
+    TestCase memory test = setupTestCase(new MaintainerProxy());
+    createBox(test);
+    db.add(test.boxID);
 
-    var numBoxesPrior = db.numBoxes();
+    /* pre-flight check */
+    Assert.equal(db.numBoxes(), test.numBoxesBefore + 1, "Box count should go up after add");
 
-    /* update */
-    db.remove(boxID);
+    /* remove */
+    db.remove(test.boxID);
 
-    Assert.equal(db.numBoxes(), numBoxesPrior - 1, "Number of boxes should decrease");
+    Assert.equal(db.numBoxes(), test.numBoxesBefore, "Box count should go down after remove");
   }
 }
