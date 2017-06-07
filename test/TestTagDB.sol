@@ -1,110 +1,188 @@
 pragma solidity ^0.4.11;
 
 import "truffle/Assert.sol";
+import "../contracts/vendor/strings.sol";
 import "../contracts/TagDB.sol";
 
+library TagTest {
+  using strings for *;
+
+  struct TestCase {
+    TagDB db;
+    string id;
+  }
+
+  function setup(TagDB db, string id)
+    internal
+    returns (TestCase memory test)
+  {
+    test.db = db;
+    test.id = id;
+  }
+
+  function expectTag(TestCase test, string tag, bool expected) internal {
+    bool exists = test.db.tagExists(tag);
+
+    var expectation = "TO BE in tags list";
+    if (!expected) {
+      expectation = "NOT ".toSlice().concat(expectation.toSlice());
+    }
+
+    var actuality = "FOUND";
+    if (!exists) {
+      actuality = "NOT ".toSlice().concat(actuality.toSlice());
+    }
+
+    if (expected != exists) {
+      var message = "Expected tag `";
+      message = message.toSlice().concat(tag.toSlice());
+      message = message.toSlice().concat("` ".toSlice());
+      message = message.toSlice().concat(expectation.toSlice());
+      message = message.toSlice().concat(", ".toSlice());
+      message = message.toSlice().concat(actuality.toSlice());
+      message = message.toSlice().concat(". (test id: ".toSlice());
+      message = message.toSlice().concat(test.id.toSlice());
+      message = message.toSlice().concat(")".toSlice());
+
+      Assert.fail(message);
+    }
+  }
+
+  function expectBoxTag(
+    TestCase test,
+    bytes32 boxID,
+    string tag,
+    bool expected,
+    string boxHint
+  )
+    internal
+  {
+    bool hasTag = test.db.boxHasTag(boxID, tag);
+
+    var expectation = "TO BE in tags list for box";
+    if (!expected) {
+      expectation = "NOT ".toSlice().concat(expectation.toSlice());
+    }
+
+    var actuality = "FOUND";
+    if (!hasTag) {
+      actuality = "NOT ".toSlice().concat(actuality.toSlice());
+    }
+
+    if (expected != hasTag) {
+      var message = "Expected tag `";
+      message = message.toSlice().concat(tag.toSlice());
+      message = message.toSlice().concat("` ".toSlice());
+      message = message.toSlice().concat(expectation.toSlice());
+      message = message.toSlice().concat(" `".toSlice());
+      message = message.toSlice().concat(boxHint.toSlice());
+      message = message.toSlice().concat("`, ".toSlice());
+      message = message.toSlice().concat(actuality.toSlice());
+      message = message.toSlice().concat(". (test id: ".toSlice());
+      message = message.toSlice().concat(test.id.toSlice());
+      message = message.toSlice().concat(")".toSlice());
+
+      Assert.fail(message);
+    }
+  }
+
+  function expectTagBox(
+    TestCase test,
+    string tag,
+    bytes32 boxID,
+    bool expected,
+    string boxHint
+  )
+    internal
+  {
+    bool hasBox = test.db.tagHasBox(tag, boxID);
+
+    var expectation = "TO BE in boxes list for tag";
+    if (!expected) {
+      expectation = "NOT ".toSlice().concat(expectation.toSlice());
+    }
+
+    var actuality = "FOUND";
+    if (!hasBox) {
+      actuality = "NOT ".toSlice().concat(actuality.toSlice());
+    }
+
+    if (expected != hasBox) {
+      var message = "Expected box `";
+      message = message.toSlice().concat(boxHint.toSlice());
+      message = message.toSlice().concat("` ".toSlice());
+      message = message.toSlice().concat(expectation.toSlice());
+      message = message.toSlice().concat(" `".toSlice());
+      message = message.toSlice().concat(tag.toSlice());
+      message = message.toSlice().concat("`, ".toSlice());
+      message = message.toSlice().concat(actuality.toSlice());
+      message = message.toSlice().concat(". (test id: ".toSlice());
+      message = message.toSlice().concat(test.id.toSlice());
+      message = message.toSlice().concat(")".toSlice());
+
+      Assert.fail(message);
+    }
+  }
+}
+
 contract TestTagDB {
+  using TagTest for TagTest.TestCase;
+
   TagDB db;
 
-  /* box1 : a b c _ _
-   * box2 : _ b c d _
-   * box3 : a _ c d e
-   */
   bytes32 box1 = sha3("box1");  // don't are about box IDs for real
   bytes32 box2 = sha3("box2");
   bytes32 box3 = sha3("box3");
+
+  string tagA = "a";
+  string tagB = "b";
+  string tagC = "c";
+
 
   function beforeEach() {
     db = new TagDB();
   }
 
-  function beforeEachSetupBox1() {
-    db.tagBox(box1, "a");
-    db.tagBox(box1, "b");
-    db.tagBox(box1, "c");
+  function testTaggingAfterIndex() {
+    TagTest.TestCase memory test = TagTest.setup(db, "taggingAfterIndex");
+
+    db.indexBox(box1);
+    db.tagBox(box1, tagA);
+
+    test.expectBoxTag(box1, tagA, true, "box1");
+    test.expectTag(tagA, true);
+    test.expectTagBox(tagA, box1, true, "box1");
   }
 
-  function beforeEachSetupBox2() {
-    db.tagBox(box2, "b");
-    db.tagBox(box2, "c");
-    db.tagBox(box2, "d");
+  function testTaggingBeforeIndex() {
+    TagTest.TestCase memory test = TagTest.setup(db, "taggingBeforeIndex");
+
+    db.tagBox(box1, tagA);
+    db.indexBox(box1);
+
+    test.expectBoxTag(box1, tagA, true, "box1");
+    test.expectTag(tagA, true);
+    test.expectTagBox(tagA, box1, true, "box1");
   }
 
-  function beforeEachSetupBox3() {
-    db.tagBox(box3, "a");
-    db.tagBox(box3, "c");
-    db.tagBox(box3, "d");
-    db.tagBox(box3, "e");
+  function testTaggingNoIndex() {
+    TagTest.TestCase memory test = TagTest.setup(db, "taggingNoIndex");
+
+    db.tagBox(box1, tagA);
+
+    test.expectBoxTag(box1, tagA, true, "box1");
+    test.expectTag(tagA, false);
+    test.expectTagBox(tagA, box1, false, "box1");
   }
 
-  function testSimpleRelationships() {
-    Assert.equal(db.numTags(), 5, "There should be 5 known tags");
+  function testUnindexing() {
+    TagTest.TestCase memory test = TagTest.setup(db, "unindexing");
 
-    Assert.isTrue(db.hasTag(box1, "a"), "box1 should have tag `a`");
-    Assert.isTrue(db.hasTag(box1, "b"), "box1 should have tag `b`");
-    Assert.isTrue(db.hasTag(box1, "c"), "box1 should have tag `c`");
-    Assert.isFalse(db.hasTag(box1, "d"), "box1 should NOT have tag `d`");
-    Assert.isFalse(db.hasTag(box1, "e"), "box1 should NOT have tag `e`");
+    db.indexBox(box1);
+    db.tagBox(box1, tagA);
+    db.unindexBox(box1);
 
-    Assert.isFalse(db.hasTag(box2, "a"), "box2 should NOT have tag `a`");
-    Assert.isTrue(db.hasTag(box2, "b"), "box2 should have tag `b`");
-    Assert.isTrue(db.hasTag(box2, "c"), "box2 should have tag `c`");
-    Assert.isTrue(db.hasTag(box2, "d"), "box1 should have tag `d`");
-    Assert.isFalse(db.hasTag(box2, "e"), "box1 should NOT have tag `e`");
-
-    Assert.isTrue(db.hasTag(box3, "a"), "box3 should have tag `a`");
-    Assert.isFalse(db.hasTag(box3, "b"), "box3 should NOT have tag `b`");
-    Assert.isTrue(db.hasTag(box3, "c"), "box3 should have tag `c`");
-    Assert.isTrue(db.hasTag(box3, "d"), "box3 should have tag `d`");
-    Assert.isTrue(db.hasTag(box3, "e"), "box3 should have tag `e`");
+    test.expectTag(tagA, false);
+    test.expectTagBox(tagA, box1, false, "box1");
   }
-
-  /* box1 : a b c _ _
-   * box2 : _ b c d _
-   * box3 : a _ c d e
-   *
-   * a : box1 ____ box3
-   * b : box1 box2 ____
-   * c : box1 box2 box3
-   * d : ____ box2 box3
-   * e : ____ ____ box3
-   */
-  function testBoxesWithTags() {
-    Assert.equal(db.numBoxesWithTag("a"), 2, "2 boxes should be marked a");
-    Assert.equal(db.numBoxesWithTag("b"), 2, "2 boxes should be marked b");
-    Assert.equal(db.numBoxesWithTag("c"), 3, "3 boxes should be marked c");
-    Assert.equal(db.numBoxesWithTag("d"), 2, "2 boxes should be marked d");
-    Assert.equal(db.numBoxesWithTag("e"), 1, "1 box should be marked e");
-    Assert.equal(db.numBoxesWithTag("f"), 0, "0 boxes should be marked f");
-
-    Assert.equal(db.boxWithTagAt("a", 0), box1, "a should refer to box1");
-    Assert.equal(db.boxWithTagAt("a", 1), box3, "a should refer to box3");
-
-    Assert.equal(db.boxWithTagAt("b", 0), box1, "b should refer to box1");
-    Assert.equal(db.boxWithTagAt("b", 1), box2, "b should refer to box2");
-
-    Assert.equal(db.boxWithTagAt("c", 0), box1, "c should refer to box1");
-    Assert.equal(db.boxWithTagAt("c", 1), box2, "c should refer to box2");
-    Assert.equal(db.boxWithTagAt("c", 2), box3, "c should refer to box3");
-
-    Assert.equal(db.boxWithTagAt("d", 0), box2, "d should refer to box2");
-    Assert.equal(db.boxWithTagAt("d", 1), box3, "d should refer to box3");
-
-    Assert.equal(db.boxWithTagAt("e", 0), box3, "e should refer to box3");
-  }
-
-  function testTagRemoval() {
-    db.untagBox(box3, "e");
-
-    Assert.equal(db.numBoxesWithTag("e"), 0, "e should now be unused");
-    Assert.equal(db.numTags(), 4, "There should be 1 fewer tag (no more e)");
-  }
-
-  // function testUntagConsistency() {
-  //   db.untagBox(box2, "d");
-
-  //   Assert.isFalse(db.hasTag(box2, "d"), "box2 should no longer be tagged d");
-  //   Assert.equal(db.numBoxesWithTag("d"), 1, "d should only be used by box3");
-  //   Assert.equal(db.boxWithTagAt("d", 0), box3, "d should reference box3 at idx 0");
-  // }
 }
