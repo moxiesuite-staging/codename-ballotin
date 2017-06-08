@@ -2,12 +2,14 @@ pragma solidity ^0.4.11;
 
 import {owned} from "./vendor/owned/owned.sol";
 import {IndexedEnumerableSetLib} from "./vendor/IndexedEnumerableSetLib.sol";
+import "../contracts/vendor/strings.sol";
 
 /**
  * @title Database contract for tags index
  */
 contract TagDB is owned {
   using IndexedEnumerableSetLib for IndexedEnumerableSetLib.IndexedEnumerableSet;
+  using strings for *;
 
   struct TagRecord {
     string tag;
@@ -42,6 +44,19 @@ contract TagDB is owned {
   /* Enumerable Tags List */
   function numTags() constant returns (uint count) {
     return tags.size();
+  }
+
+  function tagsComma() constant returns (string csv) {
+    if (tags.size() == 0) {
+      return "";
+    }
+
+    csv = tagRecords[tags.get(0)].tag;
+    for (var i = 1; i < tags.size(); i++) {
+      var tag = tagRecords[tags.get(i)].tag;
+      csv = csv.toSlice().concat(tag.toSlice());
+      csv = csv.toSlice().concat(",".toSlice());
+    }
   }
 
   function tagAt(uint idx) constant returns (string tag) {

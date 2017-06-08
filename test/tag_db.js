@@ -86,6 +86,23 @@ contract("TagDB", function(accounts) {
         });
       });
 
+      /* post-check for tags list inclusion for CSV string */
+      assuming(
+        test.expectations.tagExists !== undefined
+      ).it("should correctly include or exclude tag from tagsComma()", function() {
+        return db.tagsComma().then(function(csvTags) {
+          var tags = csvTags.split(",");
+
+          assert(
+            test.expectations.tagExists == tags.includes(test.tag),
+
+            "Afterwards, tags response string should" +
+              (test.expectations.tagExists ? " " : " NOT ") +
+              "contain tag `" + test.tag + "` " +
+              "(got: \"" +  csvTags + "\")."
+          );
+        });
+      });
     });
   });
 });
