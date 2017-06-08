@@ -29,11 +29,11 @@ contract BoxDB is owned {
   /*
    * Events
    */
-  event BoxCreate(bytes32 indexed id);
-  event BoxUpdate(bytes32 indexed id);
+  event BoxCreate(bytes32 id);
+  event BoxUpdate(bytes32 id);
 
-  event BoxAdd(bytes32 indexed id);
-  event BoxRemove(bytes32 indexed id);
+  event BoxAdd(bytes32 id);
+  event BoxRemove(bytes32 id);
 
   /*
    * Modifiers

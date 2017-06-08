@@ -29,11 +29,11 @@ contract TagDB is owned {
    * Events
    */
 
-  event BoxTag(bytes32 indexed boxID, string indexed tag);
-  event BoxUntag(bytes32 indexed boxID, string indexed tag);
+  event BoxTag(bytes32 boxID, string tag);
+  event BoxUntag(bytes32 boxID, string tag);
 
-  event BoxIndex(bytes32 indexed boxID);
-  event BoxUnindex(bytes32 indexed boxID);
+  event BoxIndex(bytes32 boxID);
+  event BoxUnindex(bytes32 boxID);
 
   /*
    * Read API
