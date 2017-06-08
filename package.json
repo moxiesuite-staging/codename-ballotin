@@ -1,0 +1,22 @@
+{
+  "name": "codename-ballotin",
+  "version": "0.1.0",
+  "description": "truffle box registry",
+  "dependencies": {},
+  "devDependencies": {
+    "mocha-assume": "^1.0.0"
+  },
+  "scripts": {
+    "test": "truffle test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/trufflesuite/codename-ballotin.git"
+  },
+  "author": "consensys.net",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/trufflesuite/codename-ballotin/issues"
+  },
+  "homepage": "https://github.com/trufflesuite/codename-ballotin#readme"
+}
