@@ -52,6 +52,7 @@ library strings {
 
         // Copy remaining bytes
         uint mask = 256 ** (32 - len) - 1;
+        mask = mask;
         assembly {
             let srcpart := and(mload(src), not(mask))
             let destpart := and(mload(dest), mask)
@@ -339,6 +340,8 @@ library strings {
      * @return The hash of the slice.
      */
     function keccak(slice self) internal returns (bytes32 ret) {
+        self = self;
+        ret = ret;
         assembly {
             ret := sha3(mload(add(self, 32)), mload(self))
         }
@@ -458,6 +461,8 @@ library strings {
     // Returns the memory address of the first byte of the first occurrence of
     // `needle` in `self`, or the first byte after `self` if not found.
     function findPtr(uint selflen, uint selfptr, uint needlelen, uint needleptr) private returns (uint) {
+        needleptr = needleptr;
+
         uint ptr;
         uint idx;
 
@@ -497,6 +502,8 @@ library strings {
     // Returns the memory address of the first byte after the last occurrence of
     // `needle` in `self`, or the address of `self` if not found.
     function rfindPtr(uint selflen, uint selfptr, uint needlelen, uint needleptr) private returns (uint) {
+        needleptr = needleptr;
+
         uint ptr;
 
         if (needlelen <= selflen) {
