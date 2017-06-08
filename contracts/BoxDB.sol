@@ -61,6 +61,15 @@ contract BoxDB is owned {
     return boxRecords[id].addedAt > 0;
   }
 
+  function boxMaintainer(bytes32 id)
+    onlyIfBoxExists(id)
+    constant
+    returns (address)
+  {
+    return boxRecords[id].maintainer;
+  }
+
+
   function boxIndexed(bytes32 id) constant returns (bool) {
     return boxes.contains(id);
   }
@@ -94,10 +103,6 @@ contract BoxDB is owned {
       record.addedAt,
       record.updatedAt
     );
-  }
-
-  function boxID(address maintainer, string sourceURL, uint salt) constant returns (bytes32) {
-    return sha3(maintainer, sourceURL, salt);
   }
 
   /*
@@ -158,5 +163,17 @@ contract BoxDB is owned {
     boxes.remove(id);
 
     BoxRemove(id);
+  }
+
+
+  /*
+   * private functions
+   */
+  function boxID(address maintainer, string sourceURL, uint salt)
+    private
+    constant
+    returns (bytes32)
+  {
+    return sha3(maintainer, sourceURL, salt);
   }
 }
