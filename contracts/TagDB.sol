@@ -2,14 +2,15 @@ pragma solidity ^0.4.11;
 
 import {owned} from "./vendor/owned/owned.sol";
 import {IndexedEnumerableSetLib} from "./vendor/IndexedEnumerableSetLib.sol";
-import "../contracts/vendor/strings.sol";
+
+import {FormatLib} from "./FormatLib.sol";
 
 /**
  * @title Database contract for tags index
  */
 contract TagDB is owned {
   using IndexedEnumerableSetLib for IndexedEnumerableSetLib.IndexedEnumerableSet;
-  using strings for *;
+  using FormatLib for IndexedEnumerableSetLib.IndexedEnumerableSet;
 
   struct TagRecord {
     string tag;
@@ -46,19 +47,6 @@ contract TagDB is owned {
     return tags.size();
   }
 
-  function tagsComma() constant returns (string csv) {
-    if (tags.size() == 0) {
-      return "";
-    }
-
-    csv = tagRecords[tags.get(0)].tag;
-    for (var i = 1; i < tags.size(); i++) {
-      var tag = tagRecords[tags.get(i)].tag;
-      csv = csv.toSlice().concat(tag.toSlice());
-      csv = csv.toSlice().concat(",".toSlice());
-    }
-  }
-
   function tagAt(uint idx) constant returns (string tag) {
     return tagRecords[tags.get(idx)].tag;
   }
@@ -66,6 +54,10 @@ contract TagDB is owned {
   function tagExists(string tag) constant returns (bool) {
     var tagHash = sha3(tag);
     return tags.contains(tagHash);
+  }
+
+  function formatTags(uint start, uint max) constant returns (string csv) {
+    return tags.format(_lookup, start, max);
   }
 
   /* Box Tags List */
@@ -81,6 +73,10 @@ contract TagDB is owned {
   function boxHasTag(bytes32 boxID, string tag) constant returns (bool) {
     var tagHash = sha3(tag);
     return boxesTags[boxID].contains(tagHash);
+  }
+
+  function formatBoxTags(bytes32 boxID, uint start, uint max) constant returns (string csv) {
+    return boxesTags[boxID].format(_lookup, start, max);
   }
 
   /* Tag Boxes List */
@@ -205,5 +201,12 @@ contract TagDB is owned {
     }
 
     BoxUnindex(boxID);
+  }
+
+  /*
+   * Private functions
+   */
+  function _lookup(bytes32 tagHash) internal constant returns (string storage tag) {
+    return tagRecords[tagHash].tag;
   }
 }
