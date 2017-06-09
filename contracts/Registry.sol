@@ -2,11 +2,10 @@ pragma solidity ^0.4.11;
 
 import {owned} from "./vendor/owned/owned.sol";
 
-import {MaintainerI} from "./MaintainerI.sol";
 import {BoxDB} from "./BoxDB.sol";
 import {TagDB} from "./TagDB.sol";
 
-contract Registry is owned, MaintainerI {
+contract Registry is owned {
   BoxDB public boxes;
   TagDB public tags;
 
