@@ -13,6 +13,7 @@ var testCases = [
     },
     unexpected: {
       tags: ["a"],
+      tagBoxes: {"a": ["1"]}
     }
   },
   {
@@ -25,6 +26,7 @@ var testCases = [
     expected: {
       boxTags: {"1": ["a"]},
       tags: ["a"],
+      tagBoxes: {"a": ["1"]},
     }
   },
   {
@@ -37,6 +39,7 @@ var testCases = [
     expected: {
       boxTags: {"1": ["a"]},
       tags: ["a"],
+      tagBoxes: {"a": ["1"]},
     }
   },
   {
@@ -67,6 +70,10 @@ var testCases = [
         "a","b","c","d","e","f","g","h","i","j","k","l","m","n", "o", "p",
         "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"
       ],
+      tagBoxes: [
+        "a","b","c","d","e","f","g","h","i","j","k","l","m","n", "o", "p",
+        "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"
+      ].reduce(function (acc, tag) { acc[tag] = ["1"]; return acc}, {})
     }
   },
 ];
@@ -172,6 +179,54 @@ contract("TagDB", function(accounts) {
             });
           });
         });
+      });
+
+      assuming(
+        test.expected.tagBoxes !== undefined || test.unexpected.tagBoxes !== undefined
+      ).it("should record tag boxes correctly", function() {
+        var expectations = Object.keys(
+          test.expected.tagBoxes || {}
+        ).map(function(tag) {
+          var expectedBoxes = test.expected.tagBoxes[tag];
+
+          return db.numBoxesWithTag(tag).then(function(count) {
+            var idxs = []; for (var i = 0; i < count; i++) { idxs.push(i); }
+
+            return Promise.all(idxs.map(function(idx) {
+              return db.boxWithTagAt(tag, idx);
+            })).then(function(boxes) {
+              expectedBoxes.forEach(function(box) {
+                assert(
+                  boxes.includes(web3.toHex(boxID(box))),
+                  "expected tag `" + tag + "` to include box `" + box + "`"
+                );
+              });
+            });
+          });
+        });
+
+        var unexpectations = Object.keys(
+          test.unexpected.tagBoxes || {}
+        ).map(function(tag) {
+          var unexpectedBoxes = test.unexpected.tagBoxes[tag];
+
+          return db.numBoxesWithTag(tag).then(function(count) {
+            var idxs = []; for (var i = 0; i < count; i++) { idxs.push(i); }
+
+            return Promise.all(idxs.map(function(idx) {
+              return db.boxWithTagAt(tag, idx);
+            })).then(function(boxes) {
+              unexpectedBoxes.forEach(function(box) {
+                assert(
+                  !boxes.includes(web3.toHex(boxID(box))),
+                  "unexpected tag `" + tag + "` to not include box `" + box + "`"
+                );
+              });
+            });
+          });
+        });
+
+        return Promise.all(expectations.concat(unexpectations));
       });
     });
   });
