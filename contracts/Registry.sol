@@ -45,11 +45,11 @@ contract Registry is owned {
     boxes.update(boxID, summary, description, sourceURL, msg.sender);
   }
 
-  function tagBox(bytes32 boxID, string tag) onlyMaintainer(boxID) {
+  function tagBox(bytes32 boxID, bytes32 tag) onlyMaintainer(boxID) {
     tags.tagBox(boxID, tag);
   }
 
-  function untagBox(bytes32 boxID, string tag) onlyMaintainer(boxID) {
+  function untagBox(bytes32 boxID, bytes32 tag) onlyMaintainer(boxID) {
     tags.untagBox(boxID, tag);
   }
 

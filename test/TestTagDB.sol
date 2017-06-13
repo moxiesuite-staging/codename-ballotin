@@ -10,9 +10,9 @@ contract TestTagDB {
   bytes32 box2 = sha3("box2");
   bytes32 box3 = sha3("box3");
 
-  string tagA = "a";
-  string tagB = "b";
-  string tagC = "c";
+  bytes32 tagA = "a";
+  bytes32 tagB = "b";
+  bytes32 tagC = "c";
 
 
   function beforeEach() {

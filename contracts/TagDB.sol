@@ -3,23 +3,14 @@ pragma solidity ^0.4.11;
 import {owned} from "./vendor/owned/owned.sol";
 import {IndexedEnumerableSetLib} from "./vendor/IndexedEnumerableSetLib.sol";
 
-import {FormatLib} from "./FormatLib.sol";
-
 /**
  * @title Database contract for tags index
  */
 contract TagDB is owned {
   using IndexedEnumerableSetLib for IndexedEnumerableSetLib.IndexedEnumerableSet;
-  using FormatLib for IndexedEnumerableSetLib.IndexedEnumerableSet;
-
-  struct TagRecord {
-    string tag;
-
-    IndexedEnumerableSetLib.IndexedEnumerableSet boxes;
-  }
 
   /* tags collection */
-  mapping (bytes32 => TagRecord) tagRecords;
+  mapping (bytes32 => IndexedEnumerableSetLib.IndexedEnumerableSet) tagsBoxes;
   IndexedEnumerableSetLib.IndexedEnumerableSet tags;
 
   /* each box ID's tag collection */
@@ -32,8 +23,8 @@ contract TagDB is owned {
    * Events
    */
 
-  event BoxTag(bytes32 boxID, string tag);
-  event BoxUntag(bytes32 boxID, string tag);
+  event BoxTag(bytes32 boxID, bytes32 tag);
+  event BoxUntag(bytes32 boxID, bytes32 tag);
 
   event BoxIndex(bytes32 boxID);
   event BoxUnindex(bytes32 boxID);
@@ -47,17 +38,12 @@ contract TagDB is owned {
     return tags.size();
   }
 
-  function tagAt(uint idx) constant returns (string tag) {
-    return tagRecords[tags.get(idx)].tag;
+  function tagAt(uint idx) constant returns (bytes32 tag) {
+    return tags.get(idx);
   }
 
-  function tagExists(string tag) constant returns (bool) {
-    var tagHash = sha3(tag);
-    return tags.contains(tagHash);
-  }
-
-  function formatTags(uint start, uint max) constant returns (string csv) {
-    return tags.format(_lookup, start, max);
+  function tagExists(bytes32 tag) constant returns (bool) {
+    return tags.contains(tag);
   }
 
   /* Box Tags List */
@@ -65,65 +51,52 @@ contract TagDB is owned {
     return boxesTags[boxID].size();
   }
 
-  function tagForBoxAt(bytes32 boxID, uint idx) constant returns (string tag) {
-    var tagHash = boxesTags[boxID].get(idx);
-    return tagRecords[tagHash].tag;
+  function tagForBoxAt(bytes32 boxID, uint idx) constant returns (bytes32 tag) {
+    return boxesTags[boxID].get(idx);
   }
 
-  function boxHasTag(bytes32 boxID, string tag) constant returns (bool) {
-    var tagHash = sha3(tag);
-    return boxesTags[boxID].contains(tagHash);
-  }
-
-  function formatBoxTags(bytes32 boxID, uint start, uint max) constant returns (string csv) {
-    return boxesTags[boxID].format(_lookup, start, max);
+  function boxHasTag(bytes32 boxID, bytes32 tag) constant returns (bool) {
+    return boxesTags[boxID].contains(tag);
   }
 
   /* Tag Boxes List */
-  function numBoxesWithTag(string tag) constant returns (uint count) {
-    var tagHash = sha3(tag);
-    return tagRecords[tagHash].boxes.size();
+  function numBoxesWithTag(bytes32 tag) constant returns (uint count) {
+    return tagsBoxes[tag].size();
   }
 
-  function boxWithTagAt(string tag, uint idx) constant returns (bytes32 boxID) {
-    var tagHash = sha3(tag);
-    return tagRecords[tagHash].boxes.get(idx);
+  function boxWithTagAt(bytes32 tag, uint idx) constant returns (bytes32 boxID) {
+    return tagsBoxes[tag].get(idx);
   }
 
-  function tagHasBox(string tag, bytes32 boxID) constant returns (bool) {
-    var tagHash = sha3(tag);
-    return tagRecords[tagHash].boxes.contains(boxID);
+  function tagHasBox(bytes32 tag, bytes32 boxID) constant returns (bool) {
+    return tagsBoxes[tag].contains(boxID);
   }
 
   /*
    * Write API
    */
-  function tagBox(bytes32 boxID, string tag) onlyowner {
-    var tagHash = sha3(tag);
-    var record = tagRecords[tagHash];
-    /* fill in tag string in case not set */
-    record.tag = tag;
-
+  function tagBox(bytes32 boxID, bytes32 tag) onlyowner {
     bool shouldIndex = boxes.contains(boxID);
 
     /* add tag to box's tags */
     bool alreadyTagged;
     var boxTags = boxesTags[boxID];
-    if (!boxTags.contains(tagHash)) {
+    if (!boxTags.contains(tag)) {
       alreadyTagged = false;
-      boxTags.add(tagHash);
+      boxTags.add(tag);
     } else {
       alreadyTagged = true;
     }
 
     /* add tag to list of known tags if box is indexed */
-    if (shouldIndex && !tags.contains(tagHash)) {
-      tags.add(tagHash);
+    if (shouldIndex && !tags.contains(tag)) {
+      tags.add(tag);
     }
 
     /* add box to list of tag's boxes if box is indexed */
-    if (shouldIndex && !record.boxes.contains(boxID)) {
-      record.boxes.add(boxID);
+    var tagBoxes = tagsBoxes[tag];
+    if (shouldIndex && !tagBoxes.contains(boxID)) {
+      tagBoxes.add(boxID);
     }
 
     if (!alreadyTagged) {
@@ -131,28 +104,27 @@ contract TagDB is owned {
     }
   }
 
-  function untagBox(bytes32 boxID, string tag) onlyowner {
-    var tagHash = sha3(tag);
-    var record = tagRecords[tagHash];
+  function untagBox(bytes32 boxID, bytes32 tag) onlyowner {
+    var tagBoxes = tagsBoxes[tag];
 
     /* remove tag from box */
     bool alreadyUntagged;
     var boxTags = boxesTags[boxID];
-    if (boxTags.contains(tagHash)) {
+    if (boxTags.contains(tag)) {
       alreadyUntagged = false;
-      boxTags.remove(tagHash);
+      boxTags.remove(tag);
     } else {
       alreadyUntagged = true;
     }
 
     /* remove box from tag record */
-    if (record.boxes.contains(boxID)) {
-      record.boxes.remove(boxID);
+    if (tagBoxes.contains(boxID)) {
+      tagBoxes.remove(boxID);
     }
 
     /* if tag doesn't have any boxes left, remove tag from the index */
-    if (tags.contains(tagHash) && record.boxes.size() == 0) {
-      tags.remove(tagHash);
+    if (tags.contains(tag) && tagBoxes.size() == 0) {
+      tags.remove(tag);
     }
 
     if (!alreadyUntagged) {
@@ -169,11 +141,10 @@ contract TagDB is owned {
 
     var boxTags = boxesTags[boxID];
     for (var i = 0; i < boxTags.size(); i++) {
-      var tagHash = boxTags.get(i);
-      var record = tagRecords[tagHash];
-      record.boxes.add(boxID);
+      var tag = boxTags.get(i);
 
-      if (!tags.contains(tagHash)) { tags.add(tagHash); }
+      tagsBoxes[tag].add(boxID);
+      if (!tags.contains(tag)) { tags.add(tag); }
     }
 
     BoxIndex(boxID);
@@ -188,25 +159,18 @@ contract TagDB is owned {
 
     var boxTags = boxesTags[boxID];
     for (var i = 0; i < boxTags.size(); i++) {
-      var tagHash = boxTags.get(i);
-      var record = tagRecords[tagHash];
+      var tag = boxTags.get(i);
+      var tagBoxes = tagsBoxes[tag];
 
-      if (record.boxes.contains(boxID)) {
-        record.boxes.remove(boxID);
+      if (tagBoxes.contains(boxID)) {
+        tagBoxes.remove(boxID);
       }
 
-      if (tags.contains(tagHash) && record.boxes.size() == 0) {
-        tags.remove(tagHash);
+      if (tags.contains(tag) && tagBoxes.size() == 0) {
+        tags.remove(tag);
       }
     }
 
     BoxUnindex(boxID);
-  }
-
-  /*
-   * Private functions
-   */
-  function _lookup(bytes32 tagHash) internal constant returns (string storage tag) {
-    return tagRecords[tagHash].tag;
   }
 }

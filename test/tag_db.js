@@ -121,65 +121,41 @@ contract("TagDB", function(accounts) {
         return Promise.all(expectations.concat(unexpectations));
       });
 
-      assuming(
-        test.expected.tags !== undefined || test.unexpected.tags !== undefined
-      ).it("should meet tag existence expectations via formatTags()", function() {
-        return db.numTags().then(function(count) {
-          return db.formatTags(0, count);
-        }).then(function(csv) {
-          var tags = csv.split(",");
+      // assuming(
+      //   test.expected.boxTags !== undefined || test.unexpected.boxTags !== undefined
+      // ).it("should record box tags correctly", function() {
+      //   var expects = Object.keys(test.expected.boxTags || {}).map(function(box) {
+      //     var tags = test.expected.boxTags[box];
+      //     return db.numTagsForBox(boxID(box)).then(function(count) {
+      //       return db.formatBoxTags(boxID(box), 0, count);
+      //     }).then(function(csv) {
+      //       var tags = csv.split(",");
 
-          (test.expected.tags || []).forEach(function(tag) {
-            assert(
-              tags.includes(tag),
-              "expected tag `" + tag + "` not found in: (" + csv + ")"
-            );
-          });
+      //       tags.forEach(function(tag) {
+      //         assert(
+      //           tags.includes(tag),
+      //           "expected tag `" + tag + "` not found for box `" + box + "`: (" + csv + ")"
+      //         );
+      //       });
+      //     });
+      //   });
 
-          (test.unexpected.tags || []).forEach(function(tag) {
-            assert(
-              !tags.includes(tag),
-              "unexpected tag `" + tag + "` found in: (" + csv + ")"
-            );
-          });
-        });
-      });
+      //   var unexpects = Object.keys(test.unexpected.boxTags || {}).map(function(box) {
+      //     var tags = test.unexpected.boxTags[box];
+      //     return db.numTagsForBox(boxID(box)).then(function(count) {
+      //       return db.formatBoxTags(boxID(box), 0, count);
+      //     }).then(function(csv) {
+      //       var tags = csv.split(",");
 
-      assuming(
-        test.expected.boxTags !== undefined || test.unexpected.boxTags !== undefined
-      ).it("should record box tags correctly", function() {
-        var expects = Object.keys(test.expected.boxTags || {}).map(function(box) {
-          var tags = test.expected.boxTags[box];
-          return db.numTagsForBox(boxID(box)).then(function(count) {
-            return db.formatBoxTags(boxID(box), 0, count);
-          }).then(function(csv) {
-            var tags = csv.split(",");
-
-            tags.forEach(function(tag) {
-              assert(
-                tags.includes(tag),
-                "expected tag `" + tag + "` not found for box `" + box + "`: (" + csv + ")"
-              );
-            });
-          });
-        });
-
-        var unexpects = Object.keys(test.unexpected.boxTags || {}).map(function(box) {
-          var tags = test.unexpected.boxTags[box];
-          return db.numTagsForBox(boxID(box)).then(function(count) {
-            return db.formatBoxTags(boxID(box), 0, count);
-          }).then(function(csv) {
-            var tags = csv.split(",");
-
-            tags.forEach(function(tag) {
-              assert(
-                !tags.includes(tag),
-                "unexpected tag `" + tag + "` found for box `" + box + "`: (" + csv + ")"
-              );
-            });
-          });
-        });
-      });
+      //       tags.forEach(function(tag) {
+      //         assert(
+      //           !tags.includes(tag),
+      //           "unexpected tag `" + tag + "` found for box `" + box + "`: (" + csv + ")"
+      //         );
+      //       });
+      //     });
+      //   });
+      // });
 
       assuming(
         test.expected.tagBoxes !== undefined || test.unexpected.tagBoxes !== undefined
