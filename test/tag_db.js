@@ -82,6 +82,31 @@ function boxID(name) {
   return web3.toAscii(web3.sha3(name));
 }
 
+// https://github.com/uxitten/polyfill/blob/master/string.polyfill.js
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/repeat
+if (!String.prototype.padEnd) {
+    String.prototype.padEnd = function padEnd(targetLength,padString) {
+        targetLength = targetLength>>0; //floor if number or convert non-number to 0;
+        padString = String(padString || ' ');
+        if (this.length > targetLength) {
+            return String(this);
+        }
+        else {
+            targetLength = targetLength-this.length;
+            if (targetLength > padString.length) {
+                padString += padString.repeat(targetLength/padString.length); //append to original to ensure we are longer than needed
+            }
+            return String(this) + padString.slice(0,targetLength);
+        }
+    };
+}
+
+function paddedTag(tag) {
+  // 32 bytes * 2 + 2 for 0x
+  return web3.toHex(tag).padEnd(66, "0");
+
+}
+
 contract("TagDB", function(accounts) {
   /* create separate context for each test case */
   testCases.forEach(function(test) {
@@ -121,41 +146,53 @@ contract("TagDB", function(accounts) {
         return Promise.all(expectations.concat(unexpectations));
       });
 
-      // assuming(
-      //   test.expected.boxTags !== undefined || test.unexpected.boxTags !== undefined
-      // ).it("should record box tags correctly", function() {
-      //   var expects = Object.keys(test.expected.boxTags || {}).map(function(box) {
-      //     var tags = test.expected.boxTags[box];
-      //     return db.numTagsForBox(boxID(box)).then(function(count) {
-      //       return db.formatBoxTags(boxID(box), 0, count);
-      //     }).then(function(csv) {
-      //       var tags = csv.split(",");
+      assuming(
+        test.expected.boxTags !== undefined || test.unexpected.boxTags !== undefined
+      ).it("should record box tags correctly", function() {
+        var expectations = Object.keys(
+          test.expected.boxTags || {}
+        ).map(function(box) {
+          var expectedTags = test.expected.boxTags[box];
 
-      //       tags.forEach(function(tag) {
-      //         assert(
-      //           tags.includes(tag),
-      //           "expected tag `" + tag + "` not found for box `" + box + "`: (" + csv + ")"
-      //         );
-      //       });
-      //     });
-      //   });
+          return db.numTagsForBox(boxID(box)).then(function(count) {
+            var idxs = []; for (var i = 0; i < count; i++) { idxs.push(i); }
 
-      //   var unexpects = Object.keys(test.unexpected.boxTags || {}).map(function(box) {
-      //     var tags = test.unexpected.boxTags[box];
-      //     return db.numTagsForBox(boxID(box)).then(function(count) {
-      //       return db.formatBoxTags(boxID(box), 0, count);
-      //     }).then(function(csv) {
-      //       var tags = csv.split(",");
+            return Promise.all(idxs.map(function(idx) {
+              return db.tagForBoxAt(boxID(box), idx);
+            })).then(function(tags) {
+              expectedTags.forEach(function(tag) {
+                assert(
+                  tags.includes(paddedTag(tag)),
+                  "expected box `" + box + "` to include tag `" + tag + "`"
+                );
+              });
+            });
+          });
+        });
 
-      //       tags.forEach(function(tag) {
-      //         assert(
-      //           !tags.includes(tag),
-      //           "unexpected tag `" + tag + "` found for box `" + box + "`: (" + csv + ")"
-      //         );
-      //       });
-      //     });
-      //   });
-      // });
+        var unexpectations = Object.keys(
+          test.unexpected.boxTags || {}
+        ).map(function(box) {
+          var unexpectedTags = test.unexpected.boxTags[box];
+
+          return db.numTagsForBox(boxID(box)).then(function(count) {
+            var idxs = []; for (var i = 0; i < count; i++) { idxs.push(i); }
+
+            return Promise.all(idxs.map(function(idx) {
+              return db.tagForBoxAt(boxID(box), idx);
+            })).then(function(tags) {
+              unexpectedTags.forEach(function(tag) {
+                assert(
+                  !tags.includes(paddedTag(tag)),
+                  "unexpected box `" + box + "` to not include tag `" + box + "`"
+                );
+              });
+            });
+          });
+        });
+
+        return Promise.all(expectations.concat(unexpectations));
+      });
 
       assuming(
         test.expected.tagBoxes !== undefined || test.unexpected.tagBoxes !== undefined
