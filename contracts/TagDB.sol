@@ -27,6 +27,7 @@ contract TagDB is owned {
   event BoxIndex(bytes32 boxID);
   event BoxUnindex(bytes32 boxID);
 
+
   /*
    * Read API
    */
@@ -44,6 +45,18 @@ contract TagDB is owned {
     return tags.contains(tag);
   }
 
+  function pageTags(uint pageIdx) constant returns (bytes32[32] page) {
+    for (var i = 0; i < 32; i++) {
+      var tagIdx = pageIdx * 32 + i;
+
+      if (tagIdx >= tags.size()) {
+        break;
+      }
+
+      page[i] = tags.get(tagIdx);
+    }
+  }
+
   /* Box Tags List */
   function numTagsForBox(bytes32 boxID) constant returns (uint count) {
     return boxesTags[boxID].size();
@@ -57,6 +70,20 @@ contract TagDB is owned {
     return boxesTags[boxID].contains(tag);
   }
 
+  function pageBoxTags(bytes32 boxID, uint pageIdx) constant returns (bytes32[32] page) {
+    var boxTags = boxesTags[boxID];
+
+    for (var i = 0; i < 32; i++) {
+      var tagIdx = pageIdx * 32 + i;
+
+      if (tagIdx >= boxTags.size()) {
+        break;
+      }
+
+      page[i] = boxTags.get(tagIdx);
+    }
+  }
+
   /* Tag Boxes List */
   function numBoxesWithTag(bytes32 tag) constant returns (uint count) {
     return tagsBoxes[tag].size();
@@ -68,6 +95,20 @@ contract TagDB is owned {
 
   function tagHasBox(bytes32 tag, bytes32 boxID) constant returns (bool) {
     return tagsBoxes[tag].contains(boxID);
+  }
+
+  function pageTagBoxes(bytes32 tag, uint pageIdx) constant returns (bytes32[32] page) {
+    var tagBoxes = tagsBoxes[tag];
+
+    for (var i = 0; i < 32; i++) {
+      var boxIdx = pageIdx * 32 + i;
+
+      if (boxIdx >= tagBoxes.size()) {
+        break;
+      }
+
+      page[i] = tagBoxes.get(boxIdx);
+    }
   }
 
   /*
