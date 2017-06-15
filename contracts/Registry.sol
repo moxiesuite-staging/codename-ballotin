@@ -65,4 +65,12 @@ contract Registry is owned {
     boxes.remove(boxID);
     tags.unindexBox(boxID);
   }
+
+  function flagOfficial(bytes32 boxID) onlyowner {
+    boxes.flagOfficial(boxID);
+  }
+
+  function flagCommunity(bytes32 boxID) onlyowner {
+    boxes.flagCommunity(boxID);
+  }
 }

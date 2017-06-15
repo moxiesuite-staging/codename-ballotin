@@ -56,8 +56,9 @@ contract TestBoxDB {
     Assert.isTrue(db.boxExists(test.boxID), "Box should exist after being added");
 
     /* correctness (string returns don't work, skip for test) */
-    var (_0, _1, _2, maintainer, addedAt, updatedAt) = db.boxInfo(test.boxID);
+    var (_0, _1, _2, maintainer, official, addedAt, updatedAt) = db.boxInfo(test.boxID);
     Assert.equal(maintainer, address(test.maintainerProxy), "Maintainer should match");
+    Assert.equal(official, false, "Box should not be marked official");
     Assert.isAbove(addedAt, 0, "Add time should be set");
     Assert.isAbove(updatedAt, 0, "Update time should be set");
   }
@@ -80,7 +81,7 @@ contract TestBoxDB {
     var newMaintainer = address(new MaintainerProxy());
     db.update(test.boxID, "new summary", "new desc", test.sourceURL, newMaintainer);
 
-    var (_0, _1, _2, updatedMaintainer, _3, _4) = db.boxInfo(test.boxID);
+    var (_0, _1, _2, updatedMaintainer, _3, _4, _5) = db.boxInfo(test.boxID);
     Assert.equal(updatedMaintainer, newMaintainer, "Maintainer should change");
   }
 

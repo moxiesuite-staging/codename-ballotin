@@ -14,6 +14,7 @@ contract BoxDB is owned {
     string summary;
     string description;
     string sourceURL;
+    bool official;
 
     uint addedAt;
     uint updatedAt;
@@ -90,6 +91,7 @@ contract BoxDB is owned {
       string description,
       string sourceURL,
       address maintainer,
+      bool official,
       uint addedAt,
       uint updatedAt
   ) {
@@ -100,6 +102,7 @@ contract BoxDB is owned {
       record.description,
       record.sourceURL,
       record.maintainer,
+      record.official,
       record.addedAt,
       record.updatedAt
     );
@@ -163,6 +166,14 @@ contract BoxDB is owned {
     boxes.remove(id);
 
     BoxRemove(id);
+  }
+
+  function flagOfficial(bytes32 id) onlyIfBoxExists(id) onlyowner {
+    boxRecords[id].official = true;
+  }
+
+  function flagCommunity(bytes32 id) onlyIfBoxExists(id) onlyowner {
+    boxRecords[id].official = false;
   }
 
 

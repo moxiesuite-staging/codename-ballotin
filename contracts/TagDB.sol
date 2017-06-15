@@ -17,8 +17,6 @@ contract TagDB is owned {
   mapping (bytes32 => IndexedEnumerableSetLib.IndexedEnumerableSet) boxesTags;
   IndexedEnumerableSetLib.IndexedEnumerableSet boxes;
 
-
-
   /*
    * Events
    */
